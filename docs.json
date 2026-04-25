@@ -111,7 +111,16 @@
             ]
           }
         ]
-      }
+      },
+      {
+        "tab": "FAQ",
+        "groups": [
+          {
+            "group": "General",
+            "pages": ["faq/posting"]
+          }
+        ]
+      },
     ],
     "global": {
       "anchors": [
