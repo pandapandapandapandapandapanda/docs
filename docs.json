@@ -84,6 +84,17 @@
         ]
       },
       {
+        "tab": "Marketplace",
+        "groups": [
+          {
+            "group": "Scripting",
+            "pages": [
+              "marketplace/tier-id"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Developer Platform API",
         "groups": [
           {

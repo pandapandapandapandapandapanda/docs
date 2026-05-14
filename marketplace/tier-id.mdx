@@ -1,0 +1,98 @@
+---
+title: Reading the tier
+description: How to read which tier a buyer paid for from inside your script.
+---
+
+When a buyer's key validates, Sirius injects a `Sirius` global into the script's runtime before your code executes. Read it to branch on what the buyer owns.
+
+## The Sirius global
+
+```lua
+getgenv().Sirius = {
+    Tier = {
+        id = "gold",
+        name = "Gold Tier",
+        meta_json = '{"features":["aimbot","fly"]}'
+    },
+    Source = "whitelist",
+    ExpiresAt = nil
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Tier.id` | string | The permanent slug you set when you created the product. Branch on this. |
+| `Tier.name` | string | The display name. Safe for UI ("Welcome, Gold member"). |
+| `Tier.meta_json` | string | The raw JSON you set in **Tier metadata**. Parse it yourself with a JSON library. |
+| `Source` | string | `"whitelist"` for paid keys, `"checkpoint"` for ad-gated free keys. |
+| `ExpiresAt` | number \| nil | Unix seconds. `nil` for permanent keys, set for subscriptions. |
+
+## Branching on tier
+
+```lua
+local tier = getgenv().Sirius and getgenv().Sirius.Tier
+local tierId = tier and tier.id or "free"
+
+if tierId == "gold" then
+    enableGoldFeatures()
+elseif tierId == "silver" then
+    enableSilverFeatures()
+else
+    -- "free" or no Sirius global at all (running outside a key gate)
+    enableBasicFeatures()
+end
+```
+
+<Tip>
+Always default to the free path when the global is missing. Your script might be running in a development environment without a key, or in an executor that strips `getgenv`.
+</Tip>
+
+## Reading tier metadata
+
+The metadata blob is per-product. Use it for feature flags, limits, or anything else that shouldn't be hard-coded against tier ids.
+
+```lua
+local HttpService = game:GetService("HttpService")
+
+local meta = {}
+if getgenv().Sirius and getgenv().Sirius.Tier and getgenv().Sirius.Tier.meta_json then
+    local ok, parsed = pcall(HttpService.JSONDecode, HttpService, getgenv().Sirius.Tier.meta_json)
+    if ok then meta = parsed end
+end
+
+if meta.features and table.find(meta.features, "aimbot") then
+    enableAimbot()
+end
+```
+
+## Subscriptions and expiry
+
+For subscription products, `ExpiresAt` is the unix timestamp of the next renewal.
+
+```lua
+local expiresAt = getgenv().Sirius and getgenv().Sirius.ExpiresAt
+if expiresAt and os.time() > expiresAt then
+    warn("subscription expired — re-validate")
+end
+```
+
+In practice you don't need to check this. Sirius revalidates keys server-side; an expired subscription will receive `"free"` tier on next validate. Treat `ExpiresAt` as informational.
+
+## What you cannot trust
+
+The tier id and metadata are baked into the watermarked source you receive. That source is unique per buyer — modifying it locally won't extend a subscription or upgrade a tier. But:
+
+- **The script runs in the buyer's executor**, which they control. They can monkey-patch `getgenv().Sirius` after your script loads.
+- **Mitigation:** read tier values **immediately at the top of your script**, before any user input. Cache them in upvalues. Don't trust later reads.
+
+```lua
+-- Top of your script, before anything else
+local SIRIUS_TIER = (function()
+    if not getgenv().Sirius or not getgenv().Sirius.Tier then return "free" end
+    return getgenv().Sirius.Tier.id
+end)()
+
+-- Now use SIRIUS_TIER throughout; never re-read getgenv().Sirius.Tier
+```
+
+Tier id and watermark are also baked into the source itself, so even if an attacker patches the global, the source is traceable.
