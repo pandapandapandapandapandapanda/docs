@@ -1,0 +1,75 @@
+---
+title: "Get a script"
+description: "Fetch one script's full detail, its raw source, or its version history."
+api: "GET https://api.roscripts.io/v1/scripts/{ref}"
+---
+
+Resolve a single script by **id, slug, or shortId** — all three work in the same path:
+
+```bash
+curl "https://api.roscripts.io/v1/scripts/blox-fruits-hub"
+curl "https://api.roscripts.io/v1/scripts/lst_9f2c4a1b7d6e5f0a1234abcd"
+curl "https://api.roscripts.io/v1/scripts/Ab3xK9q"
+```
+
+## Path parameters
+
+<ParamField path="ref" type="string" required>The script's `id`, `slug`, or `shortId`.</ParamField>
+
+## Query parameters
+
+<ParamField query="related" type="0 | 1" default="1">Include up to 6 related scripts (same game first). Set `0` to skip.</ParamField>
+<ParamField query="fields" type="string">Sparse fieldset for the script object.</ParamField>
+
+## Response
+
+<ResponseField name="result.script" type="Script">The full [Script object](/scripts-api/schema), including the long-form `body`.</ResponseField>
+<ResponseField name="result.related" type="Script[]">Related scripts, unless `related=0` or a `fields` set was requested.</ResponseField>
+
+Returns `404 not_found` if the script doesn't exist, isn't live, or is hidden.
+
+---
+
+## Raw source
+
+```
+GET https://api.roscripts.io/v1/scripts/{ref}/raw
+```
+
+Returns the script's raw Lua source as `text/plain`. **Only free, keyless scripts are servable** — for everything else, prefer the [`loadstring`](/scripts-api/schema) URL.
+
+```bash
+curl "https://api.roscripts.io/v1/scripts/blox-fruits-hub/raw"
+```
+
+| Situation | Response |
+| --- | --- |
+| Free, keyless | `200` with the Lua source |
+| Paid script | `402 payment_required` + `details.marketplaceUrl` |
+| Key-system script | `403 forbidden` + `details.keyLink` |
+| Not found / not live | `404 not_found` |
+
+<Tip>
+A script object only includes a non-null `rawUrl` when its source is servable — check that first to avoid a `402`/`403`. For execution, `loadstring` is almost always what you want.
+</Tip>
+
+---
+
+## Version history
+
+```
+GET https://api.roscripts.io/v1/scripts/{ref}/versions
+```
+
+Returns the changelog and metadata for each published version (newest first). Source is not included.
+
+```json
+{
+  "result": {
+    "listingId": "lst_…",
+    "versions": [
+      { "id": "ver_…", "label": "v3", "changelog": "Fixed auto-farm after the May update", "sizeBytes": 18422, "uploadedAt": "2026-05-28T11:04:00Z" }
+    ]
+  }
+}
+```

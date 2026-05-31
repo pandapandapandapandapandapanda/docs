@@ -124,6 +124,42 @@
         ]
       },
       {
+        "tab": "Scripts API",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "scripts-api/index"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "scripts-api/authentication",
+              "scripts-api/rate-limits",
+              "scripts-api/pagination",
+              "scripts-api/errors",
+              "scripts-api/best-practices",
+              "scripts-api/examples",
+              "scripts-api/schema"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "scripts-api/endpoints/list",
+              "scripts-api/endpoints/search",
+              "scripts-api/endpoints/trending",
+              "scripts-api/endpoints/get",
+              "scripts-api/endpoints/batch",
+              "scripts-api/endpoints/games",
+              "scripts-api/endpoints/owners",
+              "scripts-api/endpoints/misc"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "FAQ",
         "groups": [
           {

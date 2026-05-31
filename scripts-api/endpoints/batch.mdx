@@ -1,0 +1,41 @@
+---
+title: "Batch resolve"
+description: "Resolve many scripts in a single request."
+api: "POST https://api.roscripts.io/v1/scripts/batch"
+---
+
+Resolve up to **20** scripts (or **100** with an API key) in one request by id, slug, or shortId. Ideal for refreshing a known set — a user's saved list, a curated hub, a local cache.
+
+```bash
+curl -X POST "https://api.roscripts.io/v1/scripts/batch" \
+  -H "Content-Type: application/json" \
+  -d '{ "refs": ["blox-fruits-hub", "lst_9f2c…", "Ab3xK9q"] }'
+```
+
+## Body
+
+<ParamField body="refs" type="string[]" required>
+  Array of script ids, slugs, or shortIds. Max 20 anonymous, 100 with a key. Duplicates are de-duplicated.
+</ParamField>
+
+## Response
+
+<ResponseField name="result.scripts" type="Script[]">The scripts that resolved (live only).</ResponseField>
+<ResponseField name="result.missing" type="string[]">Any refs that didn't match a live script.</ResponseField>
+<ResponseField name="result.count" type="number">Number of scripts returned.</ResponseField>
+
+```json
+{
+  "result": {
+    "scripts": [
+      { "id": "lst_…", "slug": "blox-fruits-hub", "loadstring": "https://script.roscripts.io/…" }
+    ],
+    "missing": ["Ab3xK9q"],
+    "count": 1
+  }
+}
+```
+
+<Note>
+Batch is a `POST`, so it isn't shared-cached at the edge. For browsing, prefer the cacheable `GET` list/search endpoints; reserve batch for resolving a specific known set.
+</Note>

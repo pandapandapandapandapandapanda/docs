@@ -1,0 +1,125 @@
+---
+title: "Examples"
+description: "Copy-paste integrations in Luau, JavaScript, and C#."
+---
+
+Full working snippets for the most common task: search the catalogue and use the result. All examples are anonymous; add an `Authorization: Bearer rk_live_…` header for higher limits.
+
+## Search and list
+
+<CodeGroup>
+```lua Luau (executor)
+local HttpService = game:GetService("HttpService")
+
+local function search(query)
+  local url = ("https://api.roscripts.io/v1/scripts/search?q=%s&max=10")
+    :format(HttpService:UrlEncode(query))
+  local ok, body = pcall(function() return game:HttpGet(url) end)
+  if not ok then return {} end
+  return HttpService:JSONDecode(body).result.scripts
+end
+
+for _, s in ipairs(search("blox fruits")) do
+  print(("%s — %s%s"):format(
+    s.title,
+    s.verified and "✔ " or "",
+    s.key and "[key]" or ""
+  ))
+end
+```
+
+```js JavaScript
+async function search(query) {
+  const url = `https://api.roscripts.io/v1/scripts/search?q=${encodeURIComponent(query)}&max=10`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error((await res.json()).error.message);
+  const { result } = await res.json();
+  return result.scripts;
+}
+
+for (const s of await search("admin")) {
+  console.log(s.title, s.slug, s.loadstring);
+}
+```
+
+```csharp C#
+using System.Net.Http.Json;
+using System.Text.Json;
+
+var http = new HttpClient();
+var url = "https://api.roscripts.io/v1/scripts/search?q=admin&max=10";
+var data = await http.GetFromJsonAsync<JsonElement>(url);
+
+foreach (var s in data.GetProperty("result").GetProperty("scripts").EnumerateArray())
+{
+    Console.WriteLine($"{s.GetProperty("title").GetString()} — {s.GetProperty("slug").GetString()}");
+}
+```
+</CodeGroup>
+
+## Fetch one script and run it
+
+<CodeGroup>
+```lua Luau (executor)
+local HttpService = game:GetService("HttpService")
+
+local function getScript(ref)
+  local url = "https://api.roscripts.io/v1/scripts/" .. ref
+  return HttpService:JSONDecode(game:HttpGet(url)).result.script
+end
+
+local s = getScript("blox-fruits-hub") -- id, slug, or shortId all work
+if s.patched then warn("Heads up: this script may be patched.") end
+loadstring(game:HttpGet(s.loadstring))()
+```
+
+```js JavaScript
+const res = await fetch("https://api.roscripts.io/v1/scripts/blox-fruits-hub");
+const { result } = await res.json();
+const s = result.script;
+console.log(s.title, "by", s.owner?.username);
+console.log("Run with:", s.loadstring);
+```
+</CodeGroup>
+
+## Browse a game
+
+<CodeGroup>
+```js JavaScript
+// Top scripts for Blox Fruits, no key systems
+const res = await fetch(
+  "https://api.roscripts.io/v1/games/2753915549/scripts?key=0&sortBy=score&max=20"
+);
+const { result } = await res.json();
+console.log(`${result.total} scripts for placeId ${result.placeId}`);
+```
+
+```lua Luau (executor)
+local HttpService = game:GetService("HttpService")
+local placeId = game.PlaceId
+local url = ("https://api.roscripts.io/v1/games/%d/scripts?key=0&sortBy=score"):format(placeId)
+local res = HttpService:JSONDecode(game:HttpGet(url))
+for _, s in ipairs(res.result.scripts) do print(s.title) end
+```
+</CodeGroup>
+
+## Keep a local mirror in sync
+
+```js JavaScript
+let lastSeen = loadLastSeen() ?? "1970-01-01T00:00:00Z";
+
+while (true) {
+  const url = `https://api.roscripts.io/v1/scripts?updatedSince=${encodeURIComponent(lastSeen)}&sortBy=updatedAt&order=asc&max=100`;
+  const { result } = await (await fetch(url)).json();
+  if (result.scripts.length === 0) break;
+  for (const s of result.scripts) {
+    upsert(s);
+    if (s.updatedAt > lastSeen) lastSeen = s.updatedAt;
+  }
+  saveLastSeen(lastSeen);
+}
+```
+
+<Note>
+Building a wrapper library for a language we don't list here? Tell us on [Discord](https://discord.gg/KQ4kwzA87s) and we'll feature it.
+</Note>

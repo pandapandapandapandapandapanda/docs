@@ -1,0 +1,35 @@
+---
+title: "Trending"
+description: "The hottest scripts right now, by ranking score."
+api: "GET https://api.roscripts.io/v1/scripts/trending"
+---
+
+Returns the top scripts by ranking score — a blend of votes, recent view velocity, and freshness. The ranking recomputes hourly, and responses are cached for 5 minutes, so polling faster than that just returns the same data.
+
+```bash
+curl "https://api.roscripts.io/v1/scripts/trending?max=20"
+```
+
+## Query parameters
+
+<ParamField query="max" type="integer" default="20">Number of scripts. Max 20 anonymous, 100 with a key.</ParamField>
+<ParamField query="placeId" type="integer">Restrict trending to a single game.</ParamField>
+
+## Response
+
+<ResponseField name="result.scripts" type="Script[]">Top scripts, highest score first.</ResponseField>
+
+```json
+{
+  "result": {
+    "max": 20,
+    "scripts": [
+      { "id": "lst_…", "title": "…", "score": 6.12, "views": 40213, "loadstring": "https://script.roscripts.io/…" }
+    ]
+  }
+}
+```
+
+<Tip>
+Want trending **search terms** instead of scripts? Use [`/v1/trending/searches`](/scripts-api/endpoints/misc#trending-searches).
+</Tip>

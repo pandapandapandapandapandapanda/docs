@@ -1,0 +1,81 @@
+---
+title: "Suggest, stats & health"
+description: "Autocomplete, trending searches, catalogue stats, and the health check."
+---
+
+## Suggest (autocomplete)
+
+```
+GET https://api.roscripts.io/v1/suggest?q={q}
+```
+
+Lightweight autocomplete for search boxes — returns matching titles, tags, and games. Much cheaper than full search; use it for typeahead.
+
+<ParamField query="q" type="string" required>At least 2 characters.</ParamField>
+<ParamField query="max" type="integer" default="8">Up to 15 per group.</ParamField>
+
+```json
+{
+  "result": {
+    "titles": ["Blox Fruits Hub", "Blox Fruits Auto Farm"],
+    "tags": ["blox-fruits"],
+    "games": [{ "placeId": 2753915549, "name": "Blox Fruits" }]
+  }
+}
+```
+
+---
+
+## Trending searches
+
+```
+GET https://api.roscripts.io/v1/trending/searches
+```
+
+The most popular search queries over the last 7 days — great for a "trending" strip.
+
+<ParamField query="max" type="integer" default="20">Up to 50.</ParamField>
+
+```json
+{ "result": { "queries": [ { "query": "blox fruits", "count": 1843 }, { "query": "fisch", "count": 1210 } ] } }
+```
+
+---
+
+## Catalogue stats
+
+```
+GET https://api.roscripts.io/v1/stats
+```
+
+Catalogue-wide totals.
+
+```json
+{
+  "result": { "scripts": 41203, "games": 1208, "verifiedScripts": 5821, "freeScripts": 39740, "paidScripts": 1463 }
+}
+```
+
+---
+
+## Health
+
+```
+GET https://api.roscripts.io/v1/health
+```
+
+Liveness check with a database ping. Never cached. Returns `200` when healthy, `503` when degraded.
+
+```json
+{ "result": { "status": "ok", "db": true, "time": "2026-05-31T23:00:00Z" } }
+```
+
+---
+
+## OpenAPI spec
+
+```
+GET https://api.roscripts.io/v1/openapi.json
+```
+
+The full machine-readable [OpenAPI 3.1](https://spec.openapis.org/oas/v3.1.0) description of the API — point Swagger UI, Postman, or a code generator at it.

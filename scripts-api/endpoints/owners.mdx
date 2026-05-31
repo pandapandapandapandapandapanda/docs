@@ -1,0 +1,57 @@
+---
+title: "Creators"
+description: "Public creator profiles and their scripts."
+---
+
+## Creator profile
+
+```
+GET https://api.roscripts.io/v1/owners/{username}
+```
+
+Public profile and aggregate stats for a creator. We never expose internal user ids or emails.
+
+<ParamField path="username" type="string" required>The creator's username.</ParamField>
+
+```json
+{
+  "result": {
+    "owner": {
+      "username": "somedev",
+      "verified": true,
+      "pro": true,
+      "avatar": "https://…",
+      "scriptCount": 12,
+      "totalViews": 482301,
+      "totalLikes": 9120
+    }
+  }
+}
+```
+
+Returns `404` if the creator doesn't exist.
+
+---
+
+## Creator's scripts
+
+```
+GET https://api.roscripts.io/v1/owners/{username}/scripts
+```
+
+That creator's live scripts, with the full [filter + sort + pagination](/scripts-api/endpoints/list#query-parameters) set. Defaults to `sortBy=score`.
+
+```bash
+curl "https://api.roscripts.io/v1/owners/somedev/scripts?sortBy=views&max=20"
+```
+
+```json
+{
+  "result": {
+    "owner": "somedev",
+    "scripts": [ { "id": "lst_…", "title": "…", "loadstring": "https://script.roscripts.io/…" } ],
+    "page": 1, "max": 20, "total": 12, "totalPages": 1, "nextPage": null
+  },
+  "meta": { "page": 1, "max": 20, "total": 12, "totalPages": 1, "nextPage": null, "nextCursor": null }
+}
+```

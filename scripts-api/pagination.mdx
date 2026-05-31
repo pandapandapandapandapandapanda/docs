@@ -1,0 +1,74 @@
+---
+title: "Pagination & caching"
+description: "Page through results, switch to cursors for deep paging, and use ETags to make repeat reads free."
+---
+
+List endpoints return a `meta` object (also mirrored inside `result`) with everything you need to page:
+
+```json
+"meta": {
+  "page": 1,
+  "max": 20,
+  "count": 20,
+  "total": 412,
+  "totalPages": 21,
+  "nextPage": 2,
+  "nextCursor": "eyJ2IjoxNzg…"
+}
+```
+
+## Page-based
+
+The simplest approach — `?page=2&max=50`. Good for jumping to a specific page and showing "Page X of Y".
+
+```bash
+curl "https://api.roscripts.io/v1/scripts?page=2&max=50&sortBy=views"
+```
+
+`max` is capped at **20** for anonymous callers and **100** with a key. `total` and `totalPages` tell you when to stop; `nextPage` is `null` on the last page.
+
+## Cursor-based (recommended for deep paging)
+
+Page-based pagination can skip or repeat items when the underlying data changes between requests. For stable iteration over large result sets — and for syncing — use the opaque `nextCursor`:
+
+```bash
+# First page
+curl "https://api.roscripts.io/v1/scripts?max=100&sortBy=createdAt"
+# → meta.nextCursor = "eyJ2IjoxNzg…"
+
+# Next page: pass the cursor back
+curl "https://api.roscripts.io/v1/scripts?max=100&sortBy=createdAt&cursor=eyJ2IjoxNzg…"
+```
+
+When you pass a `cursor`, `page` is ignored and the count is skipped (so `total` is `null`) — keep paging until `nextCursor` comes back `null`.
+
+<Note>
+A cursor is tied to the `sortBy`/`order` you used to create it. Keep them consistent across a paging run.
+</Note>
+
+## Incremental sync
+
+To keep a local mirror fresh, sort by `updatedAt` ascending and pass `updatedSince` (a Unix timestamp or ISO 8601 date). You'll only get scripts changed since then:
+
+```bash
+curl "https://api.roscripts.io/v1/scripts?updatedSince=2026-05-01T00:00:00Z&sortBy=updatedAt&order=asc&max=100"
+```
+
+Store the largest `updatedAt` you've seen and pass it as the next `updatedSince`. See [Best practices → Sync, don't re-scrape](/scripts-api/best-practices#sync-don-t-re-scrape).
+
+## Caching & ETags
+
+Every cacheable response carries `Cache-Control` and an `ETag`. Send the ETag back as `If-None-Match` and you'll get a `304 Not Modified` with no body when nothing changed — saving bandwidth and **not counting against your rate limit**.
+
+```bash
+# First request returns an ETag
+curl -i "https://api.roscripts.io/v1/scripts/trending"
+# → ETag: W/"a1b2c3…"
+
+# Send it back; get 304 if unchanged
+curl -i "https://api.roscripts.io/v1/scripts/trending" \
+  -H 'If-None-Match: W/"a1b2c3…"'
+# → HTTP/1.1 304 Not Modified
+```
+
+The `X-Cache` response header tells you whether you hit the edge cache (`HIT`), came from origin (`MISS`), or were served a stale-but-safe copy during an upstream hiccup (`STALE`).

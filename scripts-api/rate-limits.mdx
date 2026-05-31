@@ -1,0 +1,88 @@
+---
+title: "Rate limits"
+description: "Per-minute and per-day request budgets, the headers we return, and how to handle 429s gracefully."
+---
+
+Every request is rate-limited to keep the API fast and fair. Limits are applied per **API key** when you send one, otherwise per **IP address**. Adding a key raises every limit below.
+
+## Budgets
+
+There are two windows — a per-minute burst limit and a per-day quota. Search and raw-source endpoints have their own (lower) per-minute limits because they're heavier.
+
+| | Anonymous | Free key | Partner |
+| --- | --- | --- | --- |
+| Requests / minute | 120 | 600 | 3,000 |
+| Requests / day | 10,000 | 200,000 | 5,000,000 |
+| Search / minute | 30 | 120 | 600 |
+| Raw source / minute | 30 | 120 | 600 |
+| Max `max` (page size) | 20 | 100 | 100 |
+
+<Tip>
+The cheapest way to raise your effective throughput isn't a bigger key — it's [caching](/scripts-api/best-practices#cache-everything). Responses are served from the edge and carry `ETag`s, so well-behaved clients rarely touch the rate limiter at all.
+</Tip>
+
+## Headers
+
+Every response includes your current standing on the per-minute window:
+
+```http
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 117
+X-RateLimit-Reset: 60
+X-RateLimit-Tier: anon
+```
+
+| Header | Meaning |
+| --- | --- |
+| `X-RateLimit-Limit` | Requests allowed in the current minute window |
+| `X-RateLimit-Remaining` | Requests left in this window |
+| `X-RateLimit-Reset` | Seconds until the window resets |
+| `X-RateLimit-Tier` | `anon`, `free`, or `partner` |
+
+<Note>
+Requests served from the edge cache don't count against your budget — only requests that reach the origin do. A cache `HIT` (see the `X-Cache` header) is effectively free.
+</Note>
+
+## Handling 429
+
+When you exceed a limit you get a `429` with a `Retry-After` header (in seconds) and the standard error envelope:
+
+```json
+{
+  "error": {
+    "code": "rate_limited",
+    "message": "Rate limit exceeded. Slow down or use an API key for higher limits."
+  }
+}
+```
+
+Back off and retry after the indicated delay. A simple, correct pattern:
+
+<CodeGroup>
+```js JavaScript
+async function call(url, opts) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch(url, opts);
+    if (res.status !== 429) return res;
+    const wait = Number(res.headers.get("retry-after") ?? 2) * 1000;
+    await new Promise((r) => setTimeout(r, wait));
+  }
+  throw new Error("rate limited after retries");
+}
+```
+
+```lua Luau
+local function call(url)
+  for _ = 1, 5 do
+    local ok, body = pcall(game.HttpGet, game, url)
+    if ok then return body end
+    task.wait(2) -- back off; executors rarely expose Retry-After on HttpGet
+  end
+  error("rate limited after retries")
+end
+```
+</CodeGroup>
+
+<Warning>
+Don't hammer through a `429` in a tight loop — repeated violations can get an IP temporarily blocked at the edge. Respect `Retry-After`.
+</Warning>

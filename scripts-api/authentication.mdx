@@ -1,0 +1,79 @@
+---
+title: "Authentication"
+description: "The RoScripts API is open. An optional API key raises your rate limits and page-size caps."
+---
+
+The RoScripts API is **open by default** — you can call every endpoint anonymously, rate-limited by IP. An API key is optional and does one thing: it raises your limits.
+
+<CardGroup cols={2}>
+  <Card title="Anonymous" icon="user">
+    No key. Limited by IP. `max` page size capped at **20**. Perfect for trying things out and light traffic.
+  </Card>
+  <Card title="With a key" icon="key">
+    Higher per-minute and per-day limits. `max` page size up to **100**. Best for hubs and production traffic.
+  </Card>
+</CardGroup>
+
+## Getting a key
+
+<Steps>
+  <Step title="Sign in to RoScripts">
+    Head to your [account settings](https://roscripts.io/account) on roscripts.io. You'll need a verified email.
+  </Step>
+  <Step title="Create an API key">
+    Open the **API keys** section and click **Create key**. Give it a name you'll recognise (e.g. "my-hub-prod").
+  </Step>
+  <Step title="Copy it once">
+    The full key is shown **exactly once**, at creation. Store it somewhere safe — we only keep a hash, so we can't show it again.
+  </Step>
+</Steps>
+
+## Using a key
+
+Send it as a Bearer token in the `Authorization` header:
+
+<CodeGroup>
+```bash cURL
+curl "https://api.roscripts.io/v1/scripts?max=100" \
+  -H "Authorization: Bearer rk_live_xxxxxxxxxxxxxxxx"
+```
+
+```js JavaScript
+const res = await fetch("https://api.roscripts.io/v1/scripts?max=100", {
+  headers: { Authorization: "Bearer rk_live_xxxxxxxxxxxxxxxx" },
+});
+```
+
+```lua Luau
+local res = game:HttpGet("https://api.roscripts.io/v1/scripts?max=100")
+-- Most executors can't set custom headers on HttpGet; for keyed requests
+-- use request()/http_request if your executor exposes it:
+local r = request({
+  Url = "https://api.roscripts.io/v1/scripts?max=100",
+  Method = "GET",
+  Headers = { Authorization = "Bearer rk_live_xxxxxxxxxxxxxxxx" },
+})
+```
+</CodeGroup>
+
+<Warning>
+Treat your key like a password. Don't ship it in client-side JavaScript or commit it to a public repo. If a key leaks, revoke it from your [account settings](https://roscripts.io/account) and create a new one — revocation takes effect within seconds.
+</Warning>
+
+## How keys are stored
+
+We store only a SHA-256 hash of your key, never the raw value — the same way password-reset tokens are handled across Sirius. A database leak can't be turned into working keys. The trade-off: we genuinely cannot recover a lost key, so keep it safe and rotate if in doubt.
+
+## Tiers
+
+| Tier | How to get it | Page-size cap (`max`) |
+| --- | --- | --- |
+| **Anonymous** | Nothing — just call the API | 20 |
+| **Free key** | Create one in account settings | 100 |
+| **Partner** | [Contact us](https://discord.gg/KQ4kwzA87s) for high-volume access | 100 |
+
+See [Rate limits](/scripts-api/rate-limits) for the exact request budgets per tier.
+
+<Note>
+An invalid or revoked key never hard-fails your request — the API simply treats you as anonymous and applies anonymous limits. So a rotated key degrades gracefully instead of returning `401`.
+</Note>

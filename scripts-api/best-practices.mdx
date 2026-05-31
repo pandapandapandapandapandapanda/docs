@@ -1,0 +1,125 @@
+---
+title: "Best practices"
+description: "Build a fast, resilient integration: cache aggressively, sync instead of scraping, execute via loadstring, and fail gracefully."
+---
+
+Follow these and your integration will be fast, cheap, and resilient — and you'll almost never see a `429`.
+
+## Cache everything
+
+The single biggest win. Responses are served from Cloudflare's edge and carry `Cache-Control` + `ETag`. You should layer your own cache on top.
+
+<CardGroup cols={2}>
+  <Card title="Respect Cache-Control" icon="clock">
+    Trending changes slowly (5 min), detail pages medium (1 min), lists fast (30 s). Don't re-fetch inside those windows.
+  </Card>
+  <Card title="Use ETags" icon="tag">
+    Store the `ETag` and send `If-None-Match`. A `304` is free — it doesn't count against your rate limit.
+  </Card>
+</CardGroup>
+
+```js
+const cache = new Map(); // url -> { etag, body }
+
+async function getCached(url) {
+  const prev = cache.get(url);
+  const res = await fetch(url, prev ? { headers: { "If-None-Match": prev.etag } } : {});
+  if (res.status === 304) return prev.body;
+  const body = await res.json();
+  cache.set(url, { etag: res.headers.get("etag"), body });
+  return body;
+}
+```
+
+## Sync, don't re-scrape
+
+If you maintain a local copy of the catalogue, **never** re-page through everything on a schedule. Pull only what changed:
+
+<Steps>
+  <Step title="Do one full backfill">
+    Page through `GET /v1/scripts` with `sortBy=updatedAt&order=asc` using `cursor`, storing each script and the max `updatedAt` you see.
+  </Step>
+  <Step title="Then sync deltas">
+    On a timer, call `GET /v1/scripts?updatedSince=<lastSeen>&sortBy=updatedAt&order=asc` and upsert the results. Advance `lastSeen` to the new max `updatedAt`.
+  </Step>
+  <Step title="Resolve specifics in bulk">
+    Need to refresh a known set (e.g. the scripts a user saved)? Use [`POST /v1/scripts/batch`](/scripts-api/endpoints/batch) instead of one request per script.
+  </Step>
+</Steps>
+
+## Execute with `loadstring`
+
+Every script returns a `loadstring` URL — a stable, separately-cached execution endpoint at `script.roscripts.io`. Use it directly rather than fetching raw source and reconstructing the loader:
+
+```lua
+loadstring(game:HttpGet(script.loadstring))()
+```
+
+<Warning>
+Only call `loadstring` on scripts the user explicitly chose to run, and surface the script's `key` and `patched` flags first. Never auto-execute search results.
+</Warning>
+
+## Filter server-side
+
+Push filters into the query instead of fetching broadly and filtering on the client — it's faster, cheaper, and paginates correctly:
+
+```bash
+# Good — let the API do the work
+curl "https://api.roscripts.io/v1/scripts?placeId=2753915549&key=0&verified=1&sortBy=views"
+```
+
+Combine `mode`, `key`, `universal`, `verified`, `patched`, `placeId`, `game`, `tag`, `ui`, `owner`, `minViews`, and `hasThumbnail` freely. See the [list endpoint](/scripts-api/endpoints/list).
+
+## Trim payloads with `fields`
+
+Only need a few fields for a list view? Ask for them:
+
+```bash
+curl "https://api.roscripts.io/v1/scripts?fields=id,title,slug,image,loadstring&max=50"
+```
+
+`id` is always included so you can correlate results.
+
+## Show quality signals
+
+The catalogue carries trust signals — surface them so users make good choices:
+
+| Field | Show it as |
+| --- | --- |
+| `verified` | A verified-creator badge |
+| `key` | A "key system" warning before execution |
+| `patched` | A "may be patched" flag |
+| `scriptType: "paid"` | A price/marketplace link (no raw source) |
+| `score`, `likeCount`, `views` | Sort + social proof |
+
+## Fail gracefully
+
+<CardGroup cols={2}>
+  <Card title="Branch on error codes" icon="code">
+    Switch on the stable `error.code`, not the human message. See [Errors](/scripts-api/errors).
+  </Card>
+  <Card title="Back off on 429/503" icon="hourglass">
+    Honour `Retry-After`. Retry a handful of times with delay, then surface a friendly message.
+  </Card>
+</CardGroup>
+
+## Set a descriptive User-Agent
+
+Identify your app (e.g. `MyHub/2.1 (+https://myhub.example)`). It helps us help you if something looks off, and keeps you clear of generic-bot heuristics.
+
+## Don't
+
+<AccordionGroup>
+  <Accordion title="Don't poll tight loops for 'live' data">
+    The catalogue isn't real-time. Polling `trending` every second just burns your budget and serves you cached data anyway. Poll on the order of minutes.
+  </Accordion>
+  <Accordion title="Don't bulk-download raw source">
+    The `/raw` endpoint is rate-limited harder and is for fetching the occasional script a user opened — not for mirroring source en masse.
+  </Accordion>
+  <Accordion title="Don't ship your API key to clients">
+    Keys belong on a server. If you must call from a client, do it anonymously or proxy through your backend.
+  </Accordion>
+  <Accordion title="Don't assume the response shape is fixed forever">
+    We add fields over time. Parse defensively, ignore unknown fields, and never index by position.
+  </Accordion>
+</AccordionGroup>

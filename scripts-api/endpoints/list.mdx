@@ -1,0 +1,54 @@
+---
+title: "Fetch scripts"
+description: "List and filter the catalogue."
+api: "GET https://api.roscripts.io/v1/scripts"
+---
+
+The workhorse endpoint. Returns a paginated, filterable, sortable list of live scripts. With no parameters it returns the most recently updated scripts (the "home feed").
+
+```bash
+curl "https://api.roscripts.io/v1/scripts?sortBy=views&order=desc&max=20"
+```
+
+<Tip>
+Pass `q` here to transparently route through search — but the dedicated [search endpoint](/scripts-api/endpoints/search) defaults to relevance sorting and adds `matched`.
+</Tip>
+
+## Query parameters
+
+<ParamField query="page" type="integer" default="1">Page number (ignored when `cursor` is set).</ParamField>
+<ParamField query="max" type="integer" default="20">Results per page. Max 20 anonymous, 100 with a key.</ParamField>
+<ParamField query="cursor" type="string">Opaque keyset cursor from `meta.nextCursor` for stable deep paging.</ParamField>
+<ParamField query="sortBy" type="string" default="updatedAt">One of `views`, `likeCount`, `dislikeCount`, `createdAt`, `updatedAt`, `score`, `accuracy`.</ParamField>
+<ParamField query="order" type="string" default="desc">`asc` or `desc`.</ParamField>
+<ParamField query="mode" type="string">`free` or `paid`.</ParamField>
+<ParamField query="key" type="0 | 1">Filter by key system.</ParamField>
+<ParamField query="universal" type="0 | 1">Filter by universal (not tied to a game).</ParamField>
+<ParamField query="verified" type="0 | 1">Verified-creator scripts only.</ParamField>
+<ParamField query="patched" type="0 | 1">Filter by patched state.</ParamField>
+<ParamField query="owner" type="string">Filter by creator username.</ParamField>
+<ParamField query="placeId" type="integer">Filter by Roblox place id.</ParamField>
+<ParamField query="game" type="string">Filter by game name (exact, case-insensitive).</ParamField>
+<ParamField query="tag" type="string">Filter by tag.</ParamField>
+<ParamField query="ui" type="string">Filter by UI library (e.g. `Rayfield`).</ParamField>
+<ParamField query="source" type="string">`direct` or `sirius`.</ParamField>
+<ParamField query="minViews" type="integer">Only scripts with at least this many 30-day views.</ParamField>
+<ParamField query="hasThumbnail" type="0 | 1">Only scripts with a custom thumbnail.</ParamField>
+<ParamField query="exclude" type="string">Exclude a specific script id.</ParamField>
+<ParamField query="updatedSince" type="string">Unix seconds or ISO 8601 — only scripts updated since.</ParamField>
+<ParamField query="fields" type="string">Comma-separated sparse fieldset (e.g. `id,title,loadstring`).</ParamField>
+
+## Response
+
+<ResponseField name="result.scripts" type="Script[]">Array of [Script objects](/scripts-api/schema).</ResponseField>
+<ResponseField name="meta" type="object">Pagination — see [Pagination](/scripts-api/pagination).</ResponseField>
+
+```json
+{
+  "result": {
+    "scripts": [ { "id": "lst_…", "title": "…", "loadstring": "https://script.roscripts.io/…" } ],
+    "page": 1, "max": 20, "count": 20, "total": 412, "totalPages": 21, "nextPage": 2, "nextCursor": "eyJ2…"
+  },
+  "meta": { "page": 1, "max": 20, "count": 20, "total": 412, "totalPages": 21, "nextPage": 2, "nextCursor": "eyJ2…" }
+}
+```

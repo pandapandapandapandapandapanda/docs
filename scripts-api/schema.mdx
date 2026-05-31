@@ -1,0 +1,113 @@
+---
+title: "The Script object"
+description: "Every field a script returns across the API, with types and meaning."
+---
+
+List and detail endpoints return scripts in a single consistent shape. Detail endpoints add a few extra fields (noted below). Parse defensively — new fields may be added over time.
+
+```json
+{
+  "id": "lst_9f2c4a1b7d6e5f0a1234abcd",
+  "slug": "blox-fruits-hub",
+  "shortId": "Ab3xK9q",
+  "title": "Blox Fruits Hub",
+  "description": "Auto-farm, teleports, and a clean UI.",
+  "scriptType": "free",
+  "verified": true,
+  "key": false,
+  "keyLink": null,
+  "universal": false,
+  "patched": false,
+  "views": 18234,
+  "viewsTotal": 92841,
+  "likeCount": 1204,
+  "dislikeCount": 33,
+  "excellentCount": 210,
+  "saveCount": 880,
+  "commentCount": 47,
+  "score": 4.213,
+  "game": { "placeId": 2753915549, "name": "Blox Fruits", "image": "https://…" },
+  "image": "https://roscripts.io/api/listings/lst_…/thumbnail?v=1748400000",
+  "tags": ["auto-farm", "teleport"],
+  "ui": "Rayfield",
+  "owner": { "username": "somedev", "verified": true, "pro": true, "avatar": "https://…" },
+  "loadstring": "https://script.roscripts.io/Ab3xK9q",
+  "rawUrl": "https://api.roscripts.io/v1/scripts/lst_…/raw",
+  "marketplaceUrl": null,
+  "discordUrl": "https://discord.gg/…",
+  "createdAt": "2026-03-02T18:20:00Z",
+  "updatedAt": "2026-05-28T11:04:00Z"
+}
+```
+
+## Identity
+
+<ResponseField name="id" type="string">
+  Stable, opaque listing id (`lst_…`). Use this to reference a script long-term.
+</ResponseField>
+<ResponseField name="slug" type="string">
+  Human-readable URL segment — `https://roscripts.io/s/{slug}`. May change if the owner renames.
+</ResponseField>
+<ResponseField name="shortId" type="string | null">
+  Short code behind the `loadstring` URL (`script.roscripts.io/{shortId}`).
+</ResponseField>
+
+## Content
+
+<ResponseField name="title" type="string" />
+<ResponseField name="description" type="string">Short blurb shown on cards.</ResponseField>
+<ResponseField name="body" type="string">Long-form markdown description. **Detail endpoint only.**</ResponseField>
+<ResponseField name="tags" type="string[]" />
+<ResponseField name="ui" type="string | null">UI library, e.g. `Rayfield`.</ResponseField>
+<ResponseField name="image" type="string | null">16:9 thumbnail URL, or `null` if the listing uses an auto-generated card.</ResponseField>
+
+## Classification & trust
+
+<ResponseField name="scriptType" type="'free' | 'paid'" />
+<ResponseField name="verified" type="boolean">The creator is a verified RoScripts creator.</ResponseField>
+<ResponseField name="key" type="boolean">Whether the script gates execution behind a key system.</ResponseField>
+<ResponseField name="keyLink" type="string | null">Where to get the key, when `key` is `true`. Detail responses.</ResponseField>
+<ResponseField name="universal" type="boolean">`true` when the script isn't tied to a specific game.</ResponseField>
+<ResponseField name="patched" type="boolean">Flagged by the owner/staff as no longer working.</ResponseField>
+
+## Stats
+
+<ResponseField name="views" type="number">Rolling 30-day view count (drives ranking).</ResponseField>
+<ResponseField name="viewsTotal" type="number">All-time view count.</ResponseField>
+<ResponseField name="likeCount" type="number" />
+<ResponseField name="dislikeCount" type="number" />
+<ResponseField name="excellentCount" type="number">Top-tier "excellent" votes — a stronger positive signal than a like.</ResponseField>
+<ResponseField name="saveCount" type="number" />
+<ResponseField name="commentCount" type="number" />
+<ResponseField name="score" type="number">Computed ranking score (higher is better). Combines votes, view velocity, and freshness.</ResponseField>
+
+## Game & creator
+
+<ResponseField name="game" type="object | null">
+  `{ placeId, name, image }`, or `null` for universal scripts.
+</ResponseField>
+<ResponseField name="owner" type="object | null">
+  `{ username, verified, pro, avatar }`. We never expose internal user ids or emails.
+</ResponseField>
+
+## Links
+
+<ResponseField name="loadstring" type="string | null">
+  Direct execution URL — `loadstring(game:HttpGet(...))()`. `null` only when no short code exists.
+</ResponseField>
+<ResponseField name="rawUrl" type="string | null">
+  Where to fetch raw source. Only present when the source is actually servable (free + keyless).
+</ResponseField>
+<ResponseField name="marketplaceUrl" type="string | null">Purchase link for paid scripts.</ResponseField>
+<ResponseField name="discordUrl" type="string | null">Optional community/support link.</ResponseField>
+
+## Timestamps
+
+<ResponseField name="createdAt" type="string">ISO 8601.</ResponseField>
+<ResponseField name="updatedAt" type="string">ISO 8601. Use with `updatedSince` for syncing.</ResponseField>
+
+## Search-only
+
+<ResponseField name="matched" type="string[]">
+  On search results, which fields matched the query (e.g. `["title","tags"]`).
+</ResponseField>

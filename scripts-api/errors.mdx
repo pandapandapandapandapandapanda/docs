@@ -1,0 +1,69 @@
+---
+title: "Errors"
+description: "The error envelope, status codes, and machine-readable error codes the API returns."
+---
+
+When something goes wrong, the API returns a non-`2xx` status and a consistent JSON envelope with a machine-readable `code` you can branch on:
+
+```json
+{
+  "error": {
+    "code": "not_found",
+    "message": "Script not found.",
+    "details": { }
+  }
+}
+```
+
+`message` is human-readable and may change; **`code` is stable** — switch on it, not on the message text. `details` is optional and only present when it helps (for example, `marketplaceUrl` on a paid-script `402`).
+
+## Status codes
+
+| Status | `code` | When |
+| --- | --- | --- |
+| `400` | `bad_request` | A parameter is malformed (bad enum, non-numeric `placeId`, etc.) |
+| `401` | `unauthorized` | Reserved; the public API does not require auth |
+| `402` | `payment_required` | Raw source requested for a **paid** script — see `details.marketplaceUrl` |
+| `403` | `forbidden` | Raw source requested for a **key-system** script — see `details.keyLink` |
+| `404` | `not_found` | No such script, game, creator, or endpoint |
+| `405` | `method_not_allowed` | Wrong HTTP method for the endpoint |
+| `429` | `rate_limited` | [Rate limit](/scripts-api/rate-limits) exceeded — honour `Retry-After` |
+| `503` | `unavailable` | Temporary upstream issue — retry after a short delay |
+
+## Validation errors
+
+Unknown query parameters are **ignored** (so we can add new ones without breaking you), but malformed *known* parameters return `400` with a clear message:
+
+```json
+{ "error": { "code": "bad_request", "message": "'sortBy' must be one of: views, likeCount, dislikeCount, createdAt, updatedAt, score, accuracy" } }
+```
+
+## Raw-source gating
+
+The [`/raw`](/scripts-api/endpoints/get#raw-source) endpoint only serves source for **free, keyless** scripts. Otherwise:
+
+<CodeGroup>
+```json Paid (402)
+{
+  "error": {
+    "code": "payment_required",
+    "message": "This is a paid script; source is not available via the API.",
+    "details": { "marketplaceUrl": "https://…" }
+  }
+}
+```
+
+```json Key system (403)
+{
+  "error": {
+    "code": "forbidden",
+    "message": "This script uses a key system; source is not available via the API.",
+    "details": { "keyLink": "https://…" }
+  }
+}
+```
+</CodeGroup>
+
+<Tip>
+You can avoid these entirely: a script object only includes a `rawUrl` when its source is actually servable. Check `rawUrl != null` (or `scriptType === "free" && key === false`) before fetching raw.
+</Tip>

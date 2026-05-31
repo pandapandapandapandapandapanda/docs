@@ -1,0 +1,117 @@
+---
+title: "RoScripts API"
+description: "A fast, open, read-only REST API for the RoScripts catalogue of Roblox scripts. Search, browse, and execute scripts straight from your hub or executor."
+---
+
+The RoScripts API gives your script hub, executor, or site direct access to the entire RoScripts catalogue — search, filters, trending, per-game browsing, creator profiles, and a ready-to-run `loadstring` URL on every script.
+
+It's **open**: no key is required to get started. An optional [API key](/scripts-api/authentication) simply raises your rate limits and page sizes.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="#quickstart">
+    Your first request in under a minute — no signup.
+  </Card>
+  <Card title="Endpoints" icon="list" href="/scripts-api/endpoints/list">
+    Fetch, search, trending, games, owners, and more.
+  </Card>
+  <Card title="The Script object" icon="cube" href="/scripts-api/schema">
+    Every field a script returns, and what it means.
+  </Card>
+  <Card title="Best practices" icon="sparkles" href="/scripts-api/best-practices">
+    Cache, paginate, and sync the right way.
+  </Card>
+</CardGroup>
+
+## Base URL
+
+```
+https://api.roscripts.io/v1
+```
+
+All endpoints live under `/v1`. The version prefix is part of the contract — we won't make breaking changes within `v1`.
+
+## Quickstart
+
+<Steps>
+  <Step title="Make a request">
+    Hit the search endpoint. No authentication needed.
+
+    ```bash
+    curl "https://api.roscripts.io/v1/scripts/search?q=blox%20fruits&max=3"
+    ```
+  </Step>
+  <Step title="Read the response">
+    Every successful response is wrapped in a `result` object, with pagination in `meta`.
+
+    ```json
+    {
+      "result": {
+        "query": "blox fruits",
+        "scripts": [
+          {
+            "id": "lst_9f2c…",
+            "title": "Blox Fruits Hub",
+            "slug": "blox-fruits-hub",
+            "scriptType": "free",
+            "verified": true,
+            "key": false,
+            "views": 18234,
+            "game": { "placeId": 2753915549, "name": "Blox Fruits", "image": "https://…" },
+            "loadstring": "https://script.roscripts.io/Ab3xK9q",
+            "updatedAt": "2026-05-28T11:04:00Z"
+          }
+        ],
+        "page": 1, "max": 3, "total": 41, "totalPages": 14, "nextPage": 2, "nextCursor": "eyJ2Ijo…"
+      },
+      "meta": { "page": 1, "max": 3, "total": 41, "totalPages": 14, "nextPage": 2, "nextCursor": "eyJ2Ijo…" }
+    }
+    ```
+  </Step>
+  <Step title="Run a script">
+    Every script carries a `loadstring` URL — a stable, cached execution endpoint. From an executor:
+
+    ```lua
+    local hit = game:HttpGetAsync("https://api.roscripts.io/v1/scripts/search?q=blox%20fruits&max=1")
+    local script = game:GetService("HttpService"):JSONDecode(hit).result.scripts[1]
+    loadstring(game:HttpGet(script.loadstring))()
+    ```
+  </Step>
+</Steps>
+
+## What you can do
+
+<CardGroup cols={2}>
+  <Card title="Fetch & filter" icon="magnifying-glass" href="/scripts-api/endpoints/list">
+    Page through the catalogue with filters for game, key-system, verified, free/paid, patched, UI library, and more.
+  </Card>
+  <Card title="Full-text search" icon="text-size" href="/scripts-api/endpoints/search">
+    Relevance-ranked search with typo-tolerant matching and synonym handling.
+  </Card>
+  <Card title="Trending" icon="fire" href="/scripts-api/endpoints/trending">
+    The hottest scripts right now, by a real ranking score.
+  </Card>
+  <Card title="Batch & sync" icon="arrows-rotate" href="/scripts-api/endpoints/batch">
+    Resolve many scripts at once, or pull only what changed with <code>updatedSince</code>.
+  </Card>
+</CardGroup>
+
+## How it compares
+
+RoScripts gives you everything a script-catalogue API should, plus the things hubs actually need:
+
+| Capability | RoScripts |
+| --- | --- |
+| Fetch / search / trending | ✅ |
+| Per-script detail + raw source | ✅ |
+| **`loadstring` execution URL on every script** | ✅ |
+| **Batch resolve** (`POST /scripts/batch`) | ✅ |
+| **Incremental sync** (`updatedSince`) | ✅ |
+| **Cursor pagination** for stable deep paging | ✅ |
+| Per-game + per-creator browsing | ✅ |
+| ETag / `304 Not Modified` | ✅ |
+| Ranking `score` + community signals | ✅ |
+| Official OpenAPI spec | ✅ ([`/v1/openapi.json`](https://api.roscripts.io/v1/openapi.json)) |
+
+<Note>
+The API is read-only. Publishing and managing scripts happens on [roscripts.io](https://roscripts.io). Owners can mint API keys from their [account settings](https://roscripts.io/account).
+</Note>

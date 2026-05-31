@@ -1,0 +1,45 @@
+---
+title: "Search"
+description: "Relevance-ranked full-text search across the catalogue."
+api: "GET https://api.roscripts.io/v1/scripts/search"
+---
+
+Full-text search over titles, descriptions, tags, games, and creators. Typo-tolerant, with synonym handling (e.g. "autofarm" matches "auto farm"). Defaults to relevance (`accuracy`) sorting and annotates each result with the fields that matched.
+
+```bash
+curl "https://api.roscripts.io/v1/scripts/search?q=blox%20fruits&max=10"
+```
+
+## Query parameters
+
+<ParamField query="q" type="string" required>The search query.</ParamField>
+<ParamField query="page" type="integer" default="1" />
+<ParamField query="max" type="integer" default="20">Max 20 anonymous, 100 with a key.</ParamField>
+<ParamField query="sortBy" type="string" default="accuracy">`accuracy` (relevance), or any of `views`, `likeCount`, `dislikeCount`, `createdAt`, `updatedAt`, `score`.</ParamField>
+<ParamField query="order" type="string" default="desc" />
+
+All [filters from the fetch endpoint](/scripts-api/endpoints/list#query-parameters) — `mode`, `key`, `universal`, `verified`, `patched`, `placeId`, `game`, `tag`, `ui`, `owner`, `minViews`, `hasThumbnail`, `fields` — work here too.
+
+<Note>
+Search is on a tighter per-minute budget than other endpoints (see [Rate limits](/scripts-api/rate-limits)). Debounce user typing — don't fire a request per keystroke. For autocomplete, use [`/v1/suggest`](/scripts-api/endpoints/misc#suggest) instead.
+</Note>
+
+## Response
+
+Same shape as [fetch](/scripts-api/endpoints/list#response), plus:
+
+<ResponseField name="result.query" type="string">The query you searched.</ResponseField>
+<ResponseField name="result.scripts[].matched" type="string[]">Which fields matched, e.g. `["title","tags"]`.</ResponseField>
+
+```json
+{
+  "result": {
+    "query": "blox fruits",
+    "scripts": [
+      { "id": "lst_…", "title": "Blox Fruits Hub", "matched": ["title", "game"], "loadstring": "https://script.roscripts.io/…" }
+    ],
+    "page": 1, "max": 10, "total": 41, "totalPages": 5, "nextPage": 2
+  },
+  "meta": { "page": 1, "max": 10, "total": 41, "totalPages": 5, "nextPage": 2, "nextCursor": null }
+}
+```

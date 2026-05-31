@@ -1,0 +1,67 @@
+---
+title: "Games"
+description: "Browse the games that have scripts, and list scripts per game."
+---
+
+## Game directory
+
+```
+GET https://api.roscripts.io/v1/games
+```
+
+Lists every game that has at least one live script, ordered by 30-day view volume.
+
+<ParamField query="page" type="integer" default="1" />
+<ParamField query="max" type="integer" default="50">Up to 200.</ParamField>
+
+```json
+{
+  "result": {
+    "games": [
+      { "placeId": 2753915549, "name": "Blox Fruits", "image": "https://…", "scriptCount": 64, "views": 182304 }
+    ],
+    "page": 1, "max": 50, "total": 1208, "totalPages": 25, "nextPage": 2
+  }
+}
+```
+
+---
+
+## Game info
+
+```
+GET https://api.roscripts.io/v1/games/{placeId}
+```
+
+<ParamField path="placeId" type="integer" required>Roblox place id.</ParamField>
+
+```json
+{ "result": { "game": { "placeId": 2753915549, "name": "Blox Fruits", "image": "https://…", "scriptCount": 64, "views": 182304 } } }
+```
+
+Returns `404` if no live scripts exist for that game.
+
+---
+
+## Scripts for a game
+
+```
+GET https://api.roscripts.io/v1/games/{placeId}/scripts
+```
+
+Returns scripts attached to a game, with the full [filter + sort + pagination](/scripts-api/endpoints/list#query-parameters) set. Defaults to `sortBy=score`.
+
+```bash
+curl "https://api.roscripts.io/v1/games/2753915549/scripts?key=0&sortBy=score&max=20"
+```
+
+```json
+{
+  "result": {
+    "placeId": 2753915549,
+    "scripts": [ { "id": "lst_…", "title": "…", "loadstring": "https://script.roscripts.io/…" } ],
+    "page": 1, "max": 20, "total": 64, "totalPages": 4, "nextPage": 2, "nextCursor": "eyJ2…"
+  },
+  "meta": { "page": 1, "max": 20, "total": 64, "totalPages": 4, "nextPage": 2, "nextCursor": "eyJ2…" }
+}
+```
