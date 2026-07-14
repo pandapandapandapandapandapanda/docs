@@ -1,0 +1,38 @@
+---
+title: Button
+description: Run a function when the player clicks.
+icon: square-mouse-pointer
+---
+
+A button runs its callback when clicked. That is all it does.
+
+<Frame>
+  <img src="/images/gen2/button.png" alt="Button elements in a window" />
+</Frame>
+
+```lua
+tab:CreateButton({
+    name = "Reset character",
+    callback = function()
+        game.Players.LocalPlayer.Character:BreakJoints()
+    end,
+})
+```
+
+## Properties
+
+<ResponseField name="name" type="string">
+  The label.
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Hint text under the label. Optional.
+</ResponseField>
+
+<ResponseField name="icon" type="string | number">
+  An icon shown beside the label. Optional.
+</ResponseField>
+
+<ResponseField name="callback" type="function">
+  Runs on click.
+</ResponseField>
